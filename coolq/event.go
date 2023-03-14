@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/Mrs4s/go-cqhttp/sinanya/entity"
 	"path"
 	"strconv"
 	"strings"
@@ -72,7 +73,37 @@ func (ev *event) MarshalJSON() ([]byte, error) {
 	return append([]byte(nil), buf.Bytes()...), nil
 }
 
-func (bot *CQBot) privateMessageEvent(_ *client.QQClient, m *message.PrivateMessage) {
+//func (bot *CQBot) privateMessageEvent(_ *client.QQClient, m *message.PrivateMessage) {
+//	bot.checkMedia(m.Elements, m.Sender.Uin)
+//	source := message.Source{
+//		SourceType: message.SourcePrivate,
+//		PrimaryID:  m.Sender.Uin,
+//	}
+//	cqm := toStringMessage(m.Elements, source)
+//	id := bot.InsertPrivateMessage(m)
+//	log.Infof("收到好友 %v(%v) 的消息: %v (%v)", m.Sender.DisplayName(), m.Sender.Uin, cqm, id)
+//	typ := "message/private/friend"
+//	if m.Sender.Uin == bot.Client.Uin {
+//		typ = "message_sent/private/friend"
+//	}
+//	fm := global.MSG{
+//		"message_id":  id,
+//		"user_id":     m.Sender.Uin,
+//		"target_id":   m.Target,
+//		"message":     ToFormattedMessage(m.Elements, source),
+//		"raw_message": cqm,
+//		"font":        0,
+//		"sender": global.MSG{
+//			"user_id":  m.Sender.Uin,
+//			"nickname": m.Sender.Nickname,
+//			"sex":      "unknown",
+//			"age":      0,
+//		},
+//	}
+//	bot.dispatchEvent(typ, fm)
+//}
+
+func (bot *CQBot) privateMessageEvent(c *client.QQClient, m *message.PrivateMessage) {
 	bot.checkMedia(m.Elements, m.Sender.Uin)
 	source := message.Source{
 		SourceType: message.SourcePrivate,
@@ -80,7 +111,15 @@ func (bot *CQBot) privateMessageEvent(_ *client.QQClient, m *message.PrivateMess
 	}
 	cqm := toStringMessage(m.Elements, source)
 	id := bot.InsertPrivateMessage(m)
+	messages := []entity.Message{entity.Message{Type: "Text", Text: cqm}}
+	messageList := entity.MessagesList{Messages: messages, MessageTypes: "GET_FROM_USER_REQUEST"}
+	sitaContext := entity.SitaContext{BotId: int(c.Uin), UserId: int(m.Sender.Uin), GroupId: 0, Type: "SitaContext", ActionTypes: []string{}, Platform: "QQ", MessagesList: messageList}
 	log.Infof("收到好友 %v(%v) 的消息: %v (%v)", m.Sender.DisplayName(), m.Sender.Uin, cqm, id)
+	for _, channel := range entity.ChannelList {
+		msg, _ := json.Marshal(sitaContext)
+		channel.Write(string(msg))
+		break
+	}
 	typ := "message/private/friend"
 	if m.Sender.Uin == bot.Client.Uin {
 		typ = "message_sent/private/friend"

@@ -2,7 +2,9 @@
 package main
 
 import (
-	"github.com/Mrs4s/go-cqhttp/cmd/gocq"
+	"github.com/Mrs4s/go-cqhttp/sinanya/entity"
+	"github.com/Mrs4s/go-cqhttp/sinanya/windows"
+	log "github.com/sirupsen/logrus"
 
 	_ "github.com/Mrs4s/go-cqhttp/db/leveldb"   // leveldb 数据库支持
 	_ "github.com/Mrs4s/go-cqhttp/modules/silk" // silk编码模块
@@ -13,5 +15,19 @@ import (
 )
 
 func main() {
-	gocq.Main()
+	log.Infof("start")
+	switch entity.OS_TYPE {
+	case "windows":
+		{
+			log.Infof("进行windows登录流程")
+			windows.LoginWindows()
+			break
+		}
+	default:
+		{
+			log.Infof("进行mac登录流程")
+			windows.LoginByLinuxOrMac()
+			break
+		}
+	}
 }

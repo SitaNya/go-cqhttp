@@ -4,6 +4,12 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/canvas"
+	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/layout"
+	"fyne.io/fyne/v2/widget"
+	entity "github.com/Mrs4s/go-cqhttp/sinanya/entity"
 	"image"
 	"image/png"
 	"os"
@@ -67,31 +73,48 @@ func commonLogin() error {
 }
 
 func printQRCode(imgData []byte) {
-	const (
-		black = "\033[48;5;0m  \033[0m"
-		white = "\033[48;5;7m  \033[0m"
-	)
-	img, err := png.Decode(bytes.NewReader(imgData))
-	if err != nil {
-		log.Panic(err)
-	}
-	data := img.(*image.Gray).Pix
-	bound := img.Bounds().Max.X
-	buf := make([]byte, 0, (bound*4+1)*(bound))
-	i := 0
-	for y := 0; y < bound; y++ {
-		i = y * bound
-		for x := 0; x < bound; x++ {
-			if data[i] != 255 {
-				buf = append(buf, white...)
-			} else {
-				buf = append(buf, black...)
-			}
-			i++
+	if entity.OS_TYPE == "windows" {
+		a := entity.WINDOW
+		window := a.NewWindow("请使用手机扫码")
+		imageBox := canvas.NewImageFromFile("qrcode.png")
+
+		labelBox := widget.NewLabel("扫码完成后，请点击右侧按钮进行下一步，程序不会主动下一步:")
+		buttonBox := widget.NewButton("我扫码了", func() {
+			window.Hide()
+		})
+		imageBox.FillMode = canvas.ImageFillOriginal
+		imageRow := container.New(layout.NewGridWrapLayout(fyne.NewSize(300, 300)), imageBox)
+		labelRow := container.New(layout.NewGridLayout(2), labelBox, buttonBox)
+		contentBox := container.NewVBox(imageRow, labelRow)
+		window.SetContent(contentBox)
+		window.Show()
+	} else {
+		const (
+			black = "\033[48;5;0m  \033[0m"
+			white = "\033[48;5;7m  \033[0m"
+		)
+		img, err := png.Decode(bytes.NewReader(imgData))
+		if err != nil {
+			log.Panic(err)
 		}
-		buf = append(buf, '\n')
+		data := img.(*image.Gray).Pix
+		bound := img.Bounds().Max.X
+		buf := make([]byte, 0, (bound*4+1)*(bound))
+		i := 0
+		for y := 0; y < bound; y++ {
+			i = y * bound
+			for x := 0; x < bound; x++ {
+				if data[i] != 255 {
+					buf = append(buf, white...)
+				} else {
+					buf = append(buf, black...)
+				}
+				i++
+			}
+			buf = append(buf, '\n')
+		}
+		_, _ = colorable.NewColorableStdout().Write(buf)
 	}
-	_, _ = colorable.NewColorableStdout().Write(buf)
 }
 
 func qrcodeLogin() error {
@@ -154,11 +177,7 @@ func loginResponseProcessor(res *client.LoginResponse) error {
 		var text string
 		switch res.Error {
 		case client.SliderNeededError:
-			log.Warnf("登录需要滑条验证码, 请选择验证方式: ")
-			log.Warnf("1. 使用浏览器抓取滑条并登录")
-			log.Warnf("2. 使用手机QQ扫码验证 (需要手Q和gocq在同一网络下).")
-			log.Warn("请输入(1 - 2)：")
-			text = readIfTTY("1")
+			text = "2"
 			if strings.Contains(text, "1") {
 				ticket := getTicket(res.VerifyUrl)
 				if ticket == "" {

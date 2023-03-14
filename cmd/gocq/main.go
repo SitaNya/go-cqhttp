@@ -6,30 +6,33 @@ import (
 	"crypto/md5"
 	"crypto/sha1"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"github.com/Mrs4s/MiraiGo/message"
+	"github.com/Mrs4s/go-cqhttp/sinanya/entity"
+	"github.com/Mrs4s/go-cqhttp/sinanya/service"
+	"github.com/Mrs4s/go-cqhttp/sinanya/tools"
+	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
 	"os"
 	"path"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/Mrs4s/MiraiGo/binary"
 	"github.com/Mrs4s/MiraiGo/client"
-	para "github.com/fumiama/go-hide-param"
-	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
-	log "github.com/sirupsen/logrus"
-	"golang.org/x/crypto/pbkdf2"
-	"golang.org/x/term"
-
 	"github.com/Mrs4s/go-cqhttp/coolq"
 	"github.com/Mrs4s/go-cqhttp/db"
 	"github.com/Mrs4s/go-cqhttp/global"
-	"github.com/Mrs4s/go-cqhttp/global/terminal"
 	"github.com/Mrs4s/go-cqhttp/internal/base"
 	"github.com/Mrs4s/go-cqhttp/internal/cache"
 	"github.com/Mrs4s/go-cqhttp/internal/selfdiagnosis"
 	"github.com/Mrs4s/go-cqhttp/internal/selfupdate"
 	"github.com/Mrs4s/go-cqhttp/modules/servers"
 	"github.com/Mrs4s/go-cqhttp/server"
+	para "github.com/fumiama/go-hide-param"
+	log "github.com/sirupsen/logrus"
+	"golang.org/x/crypto/pbkdf2"
 )
 
 // 允许通过配置文件设置的状态列表
@@ -44,14 +47,6 @@ var allowStatus = [...]client.UserOnlineStatus{
 // Main 启动主程序
 func Main() {
 	base.Parse()
-	if !base.FastStart && terminal.RunningByDoubleClick() {
-		err := terminal.NoMoreDoubleClick()
-		if err != nil {
-			log.Errorf("遇到错误: %v", err)
-			time.Sleep(time.Second * 5)
-		}
-		return
-	}
 	switch {
 	case base.LittleH:
 		base.Help()
@@ -73,15 +68,22 @@ func Main() {
 	if base.LogForceNew {
 		rotateOptions = append(rotateOptions, rotatelogs.ForceNewFile())
 	}
-	w, err := rotatelogs.New(path.Join("logs", "%Y-%m-%d.log"), rotateOptions...)
-	if err != nil {
-		log.Errorf("rotatelogs init err: %v", err)
-		panic(err)
-	}
-
 	consoleFormatter := global.LogFormat{EnableColor: base.LogColorful}
 	fileFormatter := global.LogFormat{EnableColor: false}
-	log.AddHook(global.NewLocalHook(w, consoleFormatter, fileFormatter, global.GetLogLevel(base.LogLevel)...))
+	switch entity.OS_TYPE {
+	case "windows":
+		{
+			writer := tools.LogWriter{}
+			log.AddHook(global.NewLocalHook(&writer, consoleFormatter, fileFormatter, global.GetLogLevel(base.LogLevel)...))
+		}
+	default:
+		w, err := rotatelogs.New(path.Join("logs", "%Y-%m-%d.log"), rotateOptions...)
+		if err != nil {
+			log.Errorf("rotatelogs init err: %v", err)
+			panic(err)
+		}
+		log.AddHook(global.NewLocalHook(w, consoleFormatter, fileFormatter, global.GetLogLevel(base.LogLevel)...))
+	}
 
 	mkCacheDir := func(path string, _type string) {
 		if !global.PathExists(path) {
@@ -102,7 +104,6 @@ func Main() {
 		log.Fatalf("打开数据库失败: %v", err)
 	}
 
-	var byteKey []byte
 	arg := os.Args
 	if len(arg) > 1 {
 		for i := range arg {
@@ -116,7 +117,6 @@ func Main() {
 			case "key":
 				p := i + 1
 				if len(arg) > p {
-					byteKey = []byte(arg[p])
 					para.Hide(p)
 				}
 			}
@@ -131,6 +131,7 @@ func Main() {
 		}
 	}
 
+	client.SystemDeviceInfo.Protocol = client.AndroidWatch
 	log.Info("当前版本:", base.Version)
 	if base.Debug {
 		log.SetLevel(log.DebugLevel)
@@ -148,61 +149,12 @@ func Main() {
 		}
 	}
 
-	if base.Account.Encrypt {
-		if !global.PathExists("password.encrypt") {
-			if base.Account.Password == "" {
-				log.Error("无法进行加密，请在配置文件中的添加密码后重新启动.")
-				readLine()
-				os.Exit(0)
-			}
-			log.Infof("密码加密已启用, 请输入Key对密码进行加密: (Enter 提交)")
-			byteKey, _ = term.ReadPassword(int(os.Stdin.Fd()))
-			base.PasswordHash = md5.Sum([]byte(base.Account.Password))
-			_ = os.WriteFile("password.encrypt", []byte(PasswordHashEncrypt(base.PasswordHash[:], byteKey)), 0o644)
-			log.Info("密码已加密，为了您的账号安全，请删除配置文件中的密码后重新启动.")
-			readLine()
-			os.Exit(0)
-		} else {
-			if base.Account.Password != "" {
-				log.Error("密码已加密，为了您的账号安全，请删除配置文件中的密码后重新启动.")
-				readLine()
-				os.Exit(0)
-			}
-
-			if len(byteKey) == 0 {
-				log.Infof("密码加密已启用, 请输入Key对密码进行解密以继续: (Enter 提交)")
-				cancel := make(chan struct{}, 1)
-				state, _ := term.GetState(int(os.Stdin.Fd()))
-				go func() {
-					select {
-					case <-cancel:
-						return
-					case <-time.After(time.Second * 45):
-						log.Infof("解密key输入超时")
-						time.Sleep(3 * time.Second)
-						_ = term.Restore(int(os.Stdin.Fd()), state)
-						os.Exit(0)
-					}
-				}()
-				byteKey, _ = term.ReadPassword(int(os.Stdin.Fd()))
-				cancel <- struct{}{}
-			} else {
-				log.Infof("密码加密已启用, 使用运行时传递的参数进行解密，按 Ctrl+C 取消.")
-			}
-
-			encrypt, _ := os.ReadFile("password.encrypt")
-			ph, err := PasswordHashDecrypt(string(encrypt), byteKey)
-			if err != nil {
-				log.Fatalf("加密存储的密码损坏，请尝试重新配置密码")
-			}
-			copy(base.PasswordHash[:], ph)
-		}
-	} else if len(base.Account.Password) > 0 {
+	if len(base.Account.Password) > 0 {
 		base.PasswordHash = md5.Sum([]byte(base.Account.Password))
 	}
 	if !base.FastStart {
-		log.Info("Bot将在5秒后登录并开始信息处理, 按 Ctrl+C 取消.")
-		time.Sleep(time.Second * 5)
+		log.Info("Bot将在3秒后登录并开始信息处理, 按 Ctrl+C 取消.")
+		time.Sleep(time.Second * 3)
 	}
 	log.Info("开始尝试登录并同步消息...")
 	log.Infof("使用协议: %s", client.SystemDeviceInfo.Protocol)
@@ -220,16 +172,8 @@ func Main() {
 				r := binary.NewReader(token)
 				cu := r.ReadInt64()
 				if cu != base.Account.Uin {
-					log.Warnf("警告: 配置文件内的QQ号 (%v) 与缓存内的QQ号 (%v) 不相同", base.Account.Uin, cu)
-					log.Warnf("1. 使用会话缓存继续.")
-					log.Warnf("2. 删除会话缓存并重启.")
-					log.Warnf("请选择:")
-					text := readIfTTY("1")
-					if text == "2" {
-						_ = os.Remove("session.token")
-						log.Infof("缓存已删除.")
-						os.Exit(0)
-					}
+					_ = os.Remove("session.token")
+					log.Infof("缓存已删除.")
 				}
 			}
 			if err = cli.TokenLogin(token); err != nil {
@@ -249,6 +193,7 @@ func Main() {
 		cli.PasswordMd5 = base.PasswordHash
 	}
 	if !isTokenLogin {
+		_ = os.Remove("./device.json")
 		if !isQRCodeLogin {
 			if err := commonLogin(); err != nil {
 				log.Fatalf("登录时发生致命错误: %v", err)
@@ -331,7 +276,30 @@ func Main() {
 		selfupdate.CheckUpdate()
 		selfdiagnosis.NetworkDiagnosis(cli)
 	}()
-
+	loginConfig := &entity.LoginConfig{}
+	content, err := os.ReadFile(entity.LOGIN_CONFIG_FILE)
+	err = json.NewDecoder(strings.NewReader(string(content))).Decode(loginConfig)
+	if err != nil {
+		log.Fatal("配置文件不合法!", err)
+	}
+	for host, _ := range loginConfig.ServerIp {
+		service.CreateClient(int(base.Account.Uin), host, 60083)
+	}
+	go func() {
+		for true {
+			time.Sleep(500 * time.Millisecond)
+			sitaContext := <-entity.ChannelMessage
+			if sitaContext.GroupId == 0 {
+				for _, messageEvery := range sitaContext.MessagesList.Messages {
+					cli.SendPrivateMessage(int64(sitaContext.UserId), &message.SendingMessage{Elements: []message.IMessageElement{message.NewText(messageEvery.Text)}})
+				}
+			} else {
+				for _, messageEvery := range sitaContext.MessagesList.Messages {
+					cli.SendGroupMessage(int64(sitaContext.GroupId), &message.SendingMessage{Elements: []message.IMessageElement{message.NewText(messageEvery.Text)}})
+				}
+			}
+		}
+	}()
 	<-global.SetupMainSignalHandler()
 }
 

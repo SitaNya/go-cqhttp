@@ -23,7 +23,6 @@ import (
 	"github.com/Mrs4s/go-cqhttp/coolq"
 	"github.com/Mrs4s/go-cqhttp/global"
 	"github.com/Mrs4s/go-cqhttp/modules/api"
-	"github.com/Mrs4s/go-cqhttp/modules/config"
 	"github.com/Mrs4s/go-cqhttp/modules/filter"
 )
 
@@ -120,14 +119,14 @@ type WebsocketReverse struct {
 }
 
 func init() {
-	config.AddServer(&config.Server{
-		Brief:   "正向 Websocket 通信",
-		Default: wsDefault,
-	})
-	config.AddServer(&config.Server{
-		Brief:   "反向 Websocket 通信",
-		Default: wsReverseDefault,
-	})
+	//config.AddServer(&config.Server{
+	//	Brief:   "正向 Websocket 通信",
+	//	Default: wsDefault,
+	//})
+	//config.AddServer(&config.Server{
+	//	Brief:   "反向 Websocket 通信",
+	//	Default: wsReverseDefault,
+	//})
 }
 
 // runWSServer 运行一个正向WS server

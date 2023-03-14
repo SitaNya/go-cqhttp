@@ -7,8 +7,3 @@ package terminal
 func RunningByDoubleClick() bool {
 	return false
 }
-
-// NoMoreDoubleClick 提示用户不要双击运行，非Windows系统永远返回nil
-func NoMoreDoubleClick() error {
-	return nil
-}

@@ -2,6 +2,7 @@ package global
 
 import (
 	"fmt"
+	"github.com/mattn/go-colorable"
 	"io"
 	"os"
 	"path/filepath"
@@ -9,7 +10,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/mattn/go-colorable"
 	"github.com/sirupsen/logrus"
 )
 

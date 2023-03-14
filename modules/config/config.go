@@ -2,15 +2,14 @@
 package config
 
 import (
-	"bufio"
 	_ "embed" // embed the default config file
-	"fmt"
+	"encoding/json"
+	"github.com/Mrs4s/go-cqhttp/sinanya/entity"
+	log "github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v3"
 	"os"
 	"regexp"
 	"strings"
-
-	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
 )
 
 // defaultConfig 默认配置文件
@@ -55,7 +54,7 @@ type Config struct {
 		RemoveReplyAt       bool   `yaml:"remove-reply-at"`
 		ExtraReplyData      bool   `yaml:"extra-reply-data"`
 		SkipMimeScan        bool   `yaml:"skip-mime-scan"`
-		ConvertWebpImage	bool   `yaml:"convert-webp-image"`
+		ConvertWebpImage    bool   `yaml:"convert-webp-image"`
 	} `yaml:"message"`
 
 	Output struct {
@@ -78,6 +77,12 @@ type Server struct {
 
 // Parse 从默认配置文件路径中获取
 func Parse(path string) *Config {
+	loginConfig := entity.LoginConfig{}
+	content, err := os.ReadFile(entity.LOGIN_CONFIG_FILE)
+	err = json.NewDecoder(strings.NewReader(string(content))).Decode(&loginConfig)
+	if err != nil {
+		log.Fatal("配置文件不合法!", err)
+	}
 	file, err := os.ReadFile(path)
 	config := &Config{}
 	if err == nil {
@@ -86,9 +91,29 @@ func Parse(path string) *Config {
 			log.Fatal("配置文件不合法!", err)
 		}
 	} else {
-		generateConfig()
-		os.Exit(0)
+		configStr := generateConfig()
+		err = yaml.NewDecoder(strings.NewReader(configStr)).Decode(config)
+		if err != nil {
+			log.Fatal("配置文件不合法!", err)
+		}
+		config.Account.Uin = loginConfig.UserName
+		config.Account.Password = loginConfig.Passwd
+		config.Output.LogLevel = "info"
+		config.Servers = make([]map[string]yaml.Node, 0)
+		openFile, err := os.Create(path)
+		if err != nil {
+			panic(err)
+		}
+		err = yaml.NewEncoder(openFile).Encode(config)
+		if err != nil {
+			panic(err)
+		}
+		return config
 	}
+	config.Account.Uin = loginConfig.UserName
+	config.Account.Password = loginConfig.Passwd
+	config.Output.LogLevel = "info"
+	config.Servers = make([]map[string]yaml.Node, 0)
 	return config
 }
 
@@ -100,36 +125,21 @@ func AddServer(s *Server) {
 }
 
 // generateConfig 生成配置文件
-func generateConfig() {
-	fmt.Println("未找到配置文件，正在为您生成配置文件中！")
+func generateConfig() string {
 	sb := strings.Builder{}
 	sb.WriteString(defaultConfig)
-	hint := "请选择你需要的通信方式:"
-	for i, s := range serverconfs {
-		hint += fmt.Sprintf("\n> %d: %s", i, s.Brief)
-	}
-	hint += `
-请输入你需要的编号(0-9)，可输入多个，同一编号也可输入多个(如: 233)
-您的选择是:`
-	fmt.Print(hint)
-	input := bufio.NewReader(os.Stdin)
-	readString, err := input.ReadString('\n')
-	if err != nil {
-		log.Fatal("输入不合法: ", err)
-	}
-	rmax := len(serverconfs)
-	if rmax > 10 {
-		rmax = 10
+	readString := "0"
+	readMax := len(serverconfs)
+	if readMax > 10 {
+		readMax = 10
 	}
 	for _, r := range readString {
 		r -= '0'
-		if r >= 0 && r < rune(rmax) {
+		if r >= 0 && r < rune(readMax) {
 			sb.WriteString(serverconfs[r].Default)
 		}
 	}
-	_ = os.WriteFile("config.yml", []byte(sb.String()), 0o644)
-	fmt.Println("默认配置文件已生成，请修改 config.yml 后重新启动!")
-	_, _ = input.ReadString('\n')
+	return sb.String()
 }
 
 // expand 使用正则进行环境变量展开

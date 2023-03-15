@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Mrs4s/go-cqhttp/cmd/gocq"
+	"github.com/Mrs4s/go-cqhttp/global/terminal"
 	"github.com/Mrs4s/go-cqhttp/sinanya/entity"
 	log "github.com/sirupsen/logrus"
 	"os"
@@ -26,7 +27,14 @@ func LoginByLinuxOrMac() {
 	_, err := os.Stat(entity.LOGIN_CONFIG_FILE)
 	if err == nil {
 		log.Infof("使用LoginConfig.json中的数据进行登录，如登录失败请确认LoginConfig.json中的账户密码是否正确")
-		gocq.Main()
+		terminal.SetTitle()
+		gocq.InitBase()
+		gocq.PrepareData()
+		gocq.LoginInteract()
+		_ = terminal.DisableQuickEdit()
+		_ = terminal.EnableVT100()
+		gocq.WaitSignal()
+		_ = terminal.RestoreInputMode()
 		log.Exit(0)
 	}
 	userName := getInput("请输入QQ:\t")
@@ -50,5 +58,12 @@ func LoginByLinuxOrMac() {
 	// 创建Json编码器
 	encoder := json.NewEncoder(filePtr)
 	err = encoder.Encode(loginConfig)
-	gocq.Main()
+	terminal.SetTitle()
+	gocq.InitBase()
+	gocq.PrepareData()
+	gocq.LoginInteract()
+	_ = terminal.DisableQuickEdit()
+	_ = terminal.EnableVT100()
+	gocq.WaitSignal()
+	_ = terminal.RestoreInputMode()
 }

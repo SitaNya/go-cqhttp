@@ -140,8 +140,6 @@ func LoginInteract() {
 			time.Sleep(time.Second * 5)
 		}
 	}
-
-	client.SystemDeviceInfo.Protocol = client.AndroidWatch
 	log.Info("当前版本:", base.Version)
 	if base.Debug {
 		log.SetLevel(log.DebugLevel)
@@ -150,11 +148,13 @@ func LoginInteract() {
 	if !global.PathExists("device.json") {
 		log.Warn("虚拟设备信息不存在, 将自动生成随机设备.")
 		device = client.GenRandomDevice()
+		device.Protocol = 2
 		_ = os.WriteFile("device.json", device.ToJson(), 0o644)
 		log.Info("已生成设备信息并保存到 device.json 文件.")
 	} else {
 		log.Info("将使用 device.json 内的设备信息运行Bot.")
 		device = new(client.DeviceInfo)
+		device.Protocol = 2
 		if err := device.ReadJson([]byte(global.ReadAllText("device.json"))); err != nil {
 			log.Fatalf("加载设备信息失败: %v", err)
 		}

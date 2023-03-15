@@ -181,7 +181,20 @@ func MainShow(w fyne.Window, app fyne.App) {
 			log.Infof("登录成功")
 			w.Hide()
 		}
-		go func() { gocq.Main() }()
+		go func() {
+			//terminal.SetTitle()
+			//gocq.InitBase()
+			//gocq.PrepareData()
+			//gocq.LoginInteract()
+			//_ = terminal.DisableQuickEdit()
+			//_ = terminal.EnableVT100()
+			//gocq.WaitSignal()
+			//_ = terminal.RestoreInputMode()
+			gocq.InitBase()
+			gocq.PrepareData()
+			gocq.LoginInteract()
+			gocq.WaitSignal()
+		}()
 		go func() { RunningWindow(app) }()
 	})
 

@@ -80,7 +80,7 @@ func commonLogin() error {
 }
 
 func printQRCode(imgData []byte) {
-	if entity.OS_TYPE == "windows" {
+	if entity.OS_TYPE == "windows" || entity.OS_TYPE == "darwin" {
 		a := entity.WINDOW
 		window := a.NewWindow("请使用手机扫码")
 		imageBox := canvas.NewImageFromFile("qrcode.png")

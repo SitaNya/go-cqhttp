@@ -11,12 +11,37 @@ type SitaContext struct {
 }
 
 type MessagesList struct {
-	Messages     []Message `json:"messages"`
-	MessageTypes string    `json:"messageTypes"`
+	Messages     []IMessage `json:"messages"`
+	MessageTypes string     `json:"messageTypes"`
 }
 
-type Message struct {
+type IMessage interface {
+	getType()
+}
+
+type MessageText struct {
 	Text string `json:"text,omitempty"`
-	Type string `json:"type"`
+	Type string `json:"type,omitempty"`
+}
+
+func (t MessageText) getType() {
+
+}
+
+type MessageAt struct {
 	Id   int    `json:"id,omitempty"`
+	Type string `json:"type,omitempty"`
+}
+
+func (t MessageAt) getType() {
+
+}
+
+type MessageImage struct {
+	Type string `json:"type,omitempty"`
+	Url  string `json:"url,omitempty"`
+}
+
+func (t MessageImage) getType() {
+
 }

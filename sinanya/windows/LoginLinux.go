@@ -23,7 +23,7 @@ func getInput(label string) string {
 	return strings.TrimSuffix(cmdString, "\n")
 }
 
-func LoginByLinuxOrMac() {
+func LoginByLinux() {
 	_, err := os.Stat(entity.LOGIN_CONFIG_FILE)
 	if err == nil {
 		log.Infof("使用LoginConfig.json中的数据进行登录，如登录失败请确认LoginConfig.json中的账户密码是否正确")

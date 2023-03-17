@@ -166,6 +166,17 @@ func (bot *CQBot) groupMessageEvent(c *client.QQClient, m *message.GroupMessage)
 	}
 	cqm := toStringMessage(m.Elements, source)
 	id := bot.InsertGroupMessage(m)
+
+	messages := []entity.Message{entity.Message{Type: "Text", Text: cqm}}
+	messageList := entity.MessagesList{Messages: messages, MessageTypes: "GET_FROM_USER_REQUEST"}
+	sitaContext := entity.SitaContext{BotId: int(c.Uin), UserId: int(m.Sender.Uin), GroupId: 0, Type: "SitaContext", ActionTypes: []string{}, Platform: "QQ", MessagesList: messageList}
+	log.Infof("收到好友 %v(%v) 的消息: %v (%v)", m.Sender.DisplayName(), m.Sender.Uin, cqm, id)
+	for _, channel := range entity.ChannelList {
+		msg, _ := json.Marshal(sitaContext)
+		channel.Write(string(msg))
+		break
+	}
+
 	log.Infof("收到群 %v(%v) 内 %v(%v) 的消息: %v (%v)", m.GroupName, m.GroupCode, m.Sender.DisplayName(), m.Sender.Uin, cqm, id)
 	gm := bot.formatGroupMessage(m)
 	if gm == nil {

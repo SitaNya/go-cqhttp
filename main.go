@@ -17,16 +17,16 @@ import (
 func main() {
 	log.Infof("start")
 	switch entity.OS_TYPE {
-	case "windows":
+	case "linux":
 		{
-			log.Infof("进行windows登录流程")
-			windows.LoginWindows()
+			log.Infof("进行linux登录流程")
+			windows.LoginByLinux()
 			break
 		}
 	default:
 		{
 			log.Infof("进行mac登录流程")
-			windows.LoginByLinuxOrMac()
+			windows.LoginWindowsOrMac()
 			break
 		}
 	}

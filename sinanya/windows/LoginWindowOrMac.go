@@ -20,7 +20,7 @@ import (
 	"time"
 )
 
-func LoginWindows() {
+func LoginWindowsOrMac() {
 	//新建一个app
 	a := entity.WINDOW
 	//设置窗口栏，任务栏图标

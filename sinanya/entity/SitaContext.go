@@ -1,5 +1,9 @@
 package entity
 
+import (
+	"encoding/json"
+)
+
 type SitaContext struct {
 	BotId        int          `json:"botId"`
 	UserId       int          `json:"userId"`
@@ -44,4 +48,48 @@ type MessageImage struct {
 
 func (t MessageImage) GetType() string {
 	return t.Type
+}
+
+func parseMessagesList(messagesList map[string]interface{}) MessagesList {
+	messages := messagesList["messages"].([]interface{})
+	messageTypes := messagesList["messageTypes"].(string)
+
+	var resultMessages []IMessage
+	for _, message := range messages {
+		messageObj := message.(map[string]interface{})
+		messageType := messageObj["type"].(string)
+		switch messageType {
+		case "Text":
+			textMessage := MessageText{}
+			jsonBytes, _ := json.Marshal(messageObj)
+			_ = json.Unmarshal(jsonBytes, &textMessage)
+			resultMessages = append(resultMessages, textMessage)
+		case "At":
+			atMessage := MessageAt{}
+			jsonBytes, _ := json.Marshal(messageObj)
+			_ = json.Unmarshal(jsonBytes, &atMessage)
+			resultMessages = append(resultMessages, atMessage)
+		case "Image":
+			imageMessage := MessageImage{}
+			jsonBytes, _ := json.Marshal(messageObj)
+			_ = json.Unmarshal(jsonBytes, &imageMessage)
+			resultMessages = append(resultMessages, imageMessage)
+		}
+	}
+
+	return MessagesList{Messages: resultMessages, MessageTypes: messageTypes}
+}
+
+func ParseSitaContext(jsonStr string) (SitaContext, error) {
+	sitaContext := SitaContext{}
+	_ = json.Unmarshal([]byte(jsonStr), &sitaContext)
+	data := make(map[string]interface{})
+	err := json.Unmarshal([]byte(jsonStr), &data)
+	if err != nil {
+		panic(err)
+	}
+
+	sitaContext.MessagesList = parseMessagesList(data["messagesList"].(map[string]interface{}))
+
+	return sitaContext, nil
 }

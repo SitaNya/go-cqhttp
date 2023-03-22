@@ -29,8 +29,10 @@ func (l Client) HandleActive(ctx netty.ActiveContext) {
 }
 
 func (l Client) HandleRead(ctx netty.InboundContext, message netty.Message) {
-	sitaContext := entity.SitaContext{}
-	_ = json.Unmarshal([]byte(message.(string)), &sitaContext)
+	sitaContext, err := entity.ParseSitaContext(message.(string))
+	if err != nil {
+		panic(err)
+	}
 	entity.ChannelMessage <- sitaContext
 	for _, messageEvery := range sitaContext.MessagesList.Messages {
 		log.Infof("[%d]发来信息->\t%s", sitaContext.UserId, messageEvery)

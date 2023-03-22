@@ -318,6 +318,8 @@ func WaitSignal() {
 					atId := messageEvery.(entity.MessageAt).Id
 					messageList = append(messageList, message.NewAt(int64(atId)))
 					break
+				default:
+					messageList = append(messageList, message.NewText(messageEvery.(entity.MessageText).Text))
 				}
 				if sitaContext.GroupId == 0 {
 					cli.SendPrivateMessage(int64(sitaContext.UserId), &message.SendingMessage{Elements: messageList})

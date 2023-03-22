@@ -308,13 +308,21 @@ func WaitSignal() {
 		for true {
 			time.Sleep(500 * time.Millisecond)
 			sitaContext := <-entity.ChannelMessage
-			if sitaContext.GroupId == 0 {
-				for _, messageEvery := range sitaContext.MessagesList.Messages {
-					cli.SendPrivateMessage(int64(sitaContext.UserId), &message.SendingMessage{Elements: []message.IMessageElement{message.NewText(messageEvery.Text)}})
+			var messageList []message.IMessageElement
+			for _, messageEvery := range sitaContext.MessagesList.Messages {
+				switch messageEvery.GetType() {
+				case "Image":
+					messageList = append(messageList, &message.FriendImageElement{Url: messageEvery.(entity.MessageImage).Url})
+					break
+				case "At":
+					atId := messageEvery.(entity.MessageAt).Id
+					messageList = append(messageList, message.NewAt(int64(atId)))
+					break
 				}
-			} else {
-				for _, messageEvery := range sitaContext.MessagesList.Messages {
-					cli.SendGroupMessage(int64(sitaContext.GroupId), &message.SendingMessage{Elements: []message.IMessageElement{message.NewText(messageEvery.Text)}})
+				if sitaContext.GroupId == 0 {
+					cli.SendPrivateMessage(int64(sitaContext.UserId), &message.SendingMessage{Elements: messageList})
+				} else {
+					cli.SendGroupMessage(int64(sitaContext.GroupId), &message.SendingMessage{Elements: messageList})
 				}
 			}
 		}

@@ -18,7 +18,7 @@ func MakeMessageList(input string) (result []entity.IMessage) {
 	for _, charItem := range input {
 		if charItem == '[' {
 			tmpTypeBool = true
-			result = append(result, entity.MessageText{Type: "TEXT", Text: tmpText})
+			result = append(result, entity.MessageText{Type: "Text", Text: tmpText})
 			tmpText = ""
 		} else if charItem == ']' {
 			tmpTypeBool = false
@@ -35,7 +35,7 @@ func MakeMessageList(input string) (result []entity.IMessage) {
 		}
 	}
 	if tmpText != "" {
-		result = append(result, entity.Message{Type: "TEXT", Text: tmpText})
+		result = append(result, entity.MessageText{Type: "Text", Text: tmpText})
 		tmpText = ""
 	}
 	return

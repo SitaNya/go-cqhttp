@@ -33,7 +33,7 @@ func (l Client) HandleRead(ctx netty.InboundContext, message netty.Message) {
 	_ = json.Unmarshal([]byte(message.(string)), &sitaContext)
 	entity.ChannelMessage <- sitaContext
 	for _, messageEvery := range sitaContext.MessagesList.Messages {
-		log.Infof("[%d]发来信息->\t%s", sitaContext.UserId, messageEvery.Text)
+		log.Infof("[%d]发来信息->\t%s", sitaContext.UserId, messageEvery)
 	}
 	ctx.HandleRead(message)
 }

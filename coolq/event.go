@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Mrs4s/go-cqhttp/sinanya/entity"
+	"github.com/Mrs4s/go-cqhttp/sinanya/tools"
 	"path"
 	"strconv"
 	"strings"
@@ -111,7 +112,7 @@ func (bot *CQBot) privateMessageEvent(c *client.QQClient, m *message.PrivateMess
 	}
 	cqm := toStringMessage(m.Elements, source)
 	id := bot.InsertPrivateMessage(m)
-	messages := []entity.Message{entity.Message{Type: "Text", Text: cqm}}
+	messages := tools.MakeMessageList(cqm)
 	messageList := entity.MessagesList{Messages: messages, MessageTypes: "GET_FROM_USER_REQUEST"}
 	sitaContext := entity.SitaContext{BotId: int(c.Uin), UserId: int(m.Sender.Uin), GroupId: 0, Type: "SitaContext", ActionTypes: []string{}, Platform: "QQ", MessagesList: messageList}
 	log.Infof("收到好友 %v(%v) 的消息: %v (%v)", m.Sender.DisplayName(), m.Sender.Uin, cqm, id)
@@ -166,8 +167,7 @@ func (bot *CQBot) groupMessageEvent(c *client.QQClient, m *message.GroupMessage)
 	}
 	cqm := toStringMessage(m.Elements, source)
 	id := bot.InsertGroupMessage(m)
-
-	messages := []entity.Message{entity.Message{Type: "Text", Text: cqm}}
+	messages := tools.MakeMessageList(cqm)
 	messageList := entity.MessagesList{Messages: messages, MessageTypes: "GET_FROM_USER_REQUEST"}
 	sitaContext := entity.SitaContext{BotId: int(c.Uin), UserId: int(m.Sender.Uin), GroupId: 0, Type: "SitaContext", ActionTypes: []string{}, Platform: "QQ", MessagesList: messageList}
 	log.Infof("收到好友 %v(%v) 的消息: %v (%v)", m.Sender.DisplayName(), m.Sender.Uin, cqm, id)

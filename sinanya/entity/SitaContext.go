@@ -16,7 +16,7 @@ type MessagesList struct {
 }
 
 type IMessage interface {
-	getType()
+	GetType() string
 }
 
 type MessageText struct {
@@ -24,8 +24,8 @@ type MessageText struct {
 	Type string `json:"type,omitempty"`
 }
 
-func (t MessageText) getType() {
-
+func (t MessageText) GetType() string {
+	return t.Type
 }
 
 type MessageAt struct {
@@ -33,8 +33,8 @@ type MessageAt struct {
 	Type string `json:"type,omitempty"`
 }
 
-func (t MessageAt) getType() {
-
+func (t MessageAt) GetType() string {
+	return t.Type
 }
 
 type MessageImage struct {
@@ -42,6 +42,6 @@ type MessageImage struct {
 	Url  string `json:"url,omitempty"`
 }
 
-func (t MessageImage) getType() {
-
+func (t MessageImage) GetType() string {
+	return t.Type
 }

@@ -321,11 +321,11 @@ func WaitSignal() {
 				default:
 					messageList = append(messageList, message.NewText(messageEvery.(entity.MessageText).Text))
 				}
-				if sitaContext.GroupId == 0 {
-					cli.SendPrivateMessage(int64(sitaContext.UserId), &message.SendingMessage{Elements: messageList})
-				} else {
-					cli.SendGroupMessage(int64(sitaContext.GroupId), &message.SendingMessage{Elements: messageList})
-				}
+			}
+			if sitaContext.GroupId == 0 {
+				cli.SendPrivateMessage(int64(sitaContext.UserId), &message.SendingMessage{Elements: messageList})
+			} else {
+				cli.SendGroupMessage(int64(sitaContext.GroupId), &message.SendingMessage{Elements: messageList})
 			}
 		}
 	}()

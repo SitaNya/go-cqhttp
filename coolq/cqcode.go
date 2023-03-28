@@ -545,6 +545,9 @@ func (bot *CQBot) convertV11(elem msg.Element) (m any, ok bool, err error) {
 		return
 	case "at":
 		qq := elem.Get("qq")
+		if qq == "" {
+			qq = elem.Get("target")
+		}
 		if qq == "all" {
 			m = message.AtAll()
 			break
@@ -639,7 +642,7 @@ func (bot *CQBot) ConvertElement(spec *onebot.Spec, elem msg.Element, sourceType
 		return bot.reply(spec, elem, sourceType)
 	case "forward":
 		id := elem.Get("id")
-		if id != "" {
+		if id == "" {
 			return nil, errors.New("forward 消息中必须包含 id")
 		}
 		fwdMsg := bot.Client.DownloadForwardMessage(id)

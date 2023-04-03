@@ -21,14 +21,11 @@ import (
 
 	"github.com/Mrs4s/MiraiGo/binary"
 	"github.com/Mrs4s/MiraiGo/client"
+	"github.com/Mrs4s/go-cqhttp/internal/download"
 	para "github.com/fumiama/go-hide-param"
-	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/pbkdf2"
-	"golang.org/x/term"
-
-	"github.com/Mrs4s/go-cqhttp/internal/download"
 
 	"github.com/Mrs4s/go-cqhttp/coolq"
 	"github.com/Mrs4s/go-cqhttp/db"
@@ -39,9 +36,6 @@ import (
 	"github.com/Mrs4s/go-cqhttp/internal/selfupdate"
 	"github.com/Mrs4s/go-cqhttp/modules/servers"
 	"github.com/Mrs4s/go-cqhttp/server"
-	para "github.com/fumiama/go-hide-param"
-	log "github.com/sirupsen/logrus"
-	"golang.org/x/crypto/pbkdf2"
 )
 
 // 允许通过配置文件设置的状态列表
@@ -142,7 +136,7 @@ func LoginInteract() {
 			}
 		}
 	}
-
+	base.Account.Password = ""
 	if (base.Account.Uin == 0 || (base.Account.Password == "" && !base.Account.Encrypt)) && !global.PathExists("session.token") {
 		log.Warn("账号密码未配置, 将使用二维码登录.")
 		if !base.FastStart {

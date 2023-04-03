@@ -84,37 +84,21 @@ func Parse(path string) *Config {
 	if err != nil {
 		log.Fatal("配置文件不合法!", err)
 	}
-	file, err := os.ReadFile(path)
 	config := &Config{}
-	if err == nil {
-		err = yaml.NewDecoder(strings.NewReader(expand(string(file), os.Getenv))).Decode(config)
-		if err != nil {
-			log.Fatal("配置文件不合法!", err)
-		}
-	} else {
-		configStr := generateConfig()
-		err = yaml.NewDecoder(strings.NewReader(configStr)).Decode(config)
-		if err != nil {
-			log.Fatal("配置文件不合法!", err)
-		}
-		config.Account.Uin = loginConfig.UserName
-		config.Account.Password = loginConfig.Passwd
-		config.Output.LogLevel = "info"
-		config.Servers = make([]map[string]yaml.Node, 0)
-		openFile, err := os.Create(path)
-		if err != nil {
-			panic(err)
-		}
-		err = yaml.NewEncoder(openFile).Encode(config)
-		if err != nil {
-			panic(err)
-		}
-		return config
+	configStr := generateConfig()
+	err = yaml.NewDecoder(strings.NewReader(configStr)).Decode(config)
+	if err != nil {
+		log.Fatal("配置文件不合法!", err)
 	}
 	config.Account.Uin = loginConfig.UserName
 	config.Account.Password = loginConfig.Passwd
 	config.Output.LogLevel = "info"
 	config.Servers = make([]map[string]yaml.Node, 0)
+	openFile, _ := os.Create(path)
+	err = yaml.NewEncoder(openFile).Encode(config)
+	if err != nil {
+		panic(err)
+	}
 	return config
 }
 

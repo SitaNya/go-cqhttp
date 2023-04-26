@@ -15,6 +15,7 @@ import (
 	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -47,6 +48,8 @@ var allowStatus = [...]client.UserOnlineStatus{
 	client.StatusStudy, client.StatusStayUp, client.StatusPlayBall, client.StatusSignal, client.StatusStudyOnline,
 	client.StatusGaming, client.StatusVacationing, client.StatusWatchingTV, client.StatusFitness,
 }
+
+var bot *coolq.CQBot
 
 // InitBase 解析参数并检测
 //
@@ -323,8 +326,8 @@ func LoginInteract() {
 		base.Account.Status = 0
 	}
 	cli.SetOnlineStatus(allowStatus[base.Account.Status])
-
-	servers.Run(coolq.NewQQBot(cli))
+	bot = coolq.NewQQBot(cli)
+	servers.Run(bot)
 	log.Info("资源初始化完成, 开始处理信息.")
 	log.Info("アトリは、高性能ですから!")
 }
@@ -347,6 +350,78 @@ func WaitSignal() {
 	for host, _ := range loginConfig.ServerIp {
 		service.CreateClient(int(base.Account.Uin), host, 60083)
 	}
+	makeMassage()
+	makeAction()
+	<-global.SetupMainSignalHandler()
+}
+
+func makeAction() {
+	go func() {
+		for true {
+			time.Sleep(500 * time.Millisecond)
+			sitaContext := <-entity.ChannelAction
+			var messageList []message.IMessageElement
+			for _, messageEvery := range sitaContext.MessagesList.Messages {
+				switch messageEvery.GetType() {
+				case "Image":
+					messageList = append(messageList, &message.FriendImageElement{Url: messageEvery.(entity.MessageImage).Url})
+					break
+				case "At":
+					atId := messageEvery.(entity.MessageAt).Id
+					messageList = append(messageList, message.NewAt(int64(atId)))
+					break
+				default:
+					messageList = append(messageList, message.NewText(messageEvery.(entity.MessageText).Text))
+				}
+			}
+			if sitaContext.GroupId == 0 {
+				cli.SendPrivateMessage(int64(sitaContext.UserId), &message.SendingMessage{Elements: messageList})
+			} else {
+				cli.SendGroupMessage(int64(sitaContext.GroupId), &message.SendingMessage{Elements: messageList})
+			}
+			actionType := sitaContext.ActionTypes.Context
+			var messageReturn []entity.IMessage
+			switch actionType {
+			case "GROUP_LEAVE_REQUEST":
+				bot.CQSetGroupLeave(int64(sitaContext.GroupId))
+				messageReturn = []entity.IMessage{entity.MessageText{Type: "Text", Text: "已退出"}}
+			case "GROUP_GET_NAME_REQUEST":
+				groupInfo, _ := cli.GetGroupInfo(int64(sitaContext.GroupId))
+				messageReturn = []entity.IMessage{entity.MessageText{Type: "Text", Text: groupInfo.Name}}
+			case "GROUP_GET_LIST_REQUEST":
+				groupList, _ := cli.GetGroupList()
+				for _, group := range groupList {
+					messageReturn = append(messageReturn, entity.MessageText{Type: "Text", Text: strconv.FormatInt(group.Code, 10)})
+				}
+			case "GROUP_GET_LAST_SENDER_TIME_REQUEST":
+				groupInfo, _ := cli.GetGroupInfo(int64(sitaContext.GroupId))
+				messageReturn = []entity.IMessage{entity.MessageText{Type: "Text", Text: strconv.FormatInt(groupInfo.LastMsgSeq, 10)}}
+			case "GROUP_CHANGE_USER_NAME_REQUEST":
+				bot.CQSetGroupCard(int64(sitaContext.GroupId), int64(sitaContext.UserId), sitaContext.MessagesList.Messages[0].(entity.MessageText).Text)
+				messageReturn = []entity.IMessage{entity.MessageText{Type: "Text", Text: "修改成功"}}
+			case "USER_GET_NAME_REQUEST":
+				if sitaContext.GroupId == 0 {
+					userId := int64(sitaContext.UserId)
+					userNickName := cli.FindFriend(userId).Nickname
+					messageReturn = []entity.IMessage{entity.MessageText{Type: "Text", Text: userNickName}}
+				} else {
+					groupId := int64(sitaContext.GroupId)
+					userId := int64(sitaContext.UserId)
+					memberInfo, _ := cli.GetMemberInfo(groupId, userId)
+					messageReturn = []entity.IMessage{entity.MessageText{Type: "Text", Text: memberInfo.Nickname}}
+				}
+			}
+			sitaContext.MessagesList.Messages = messageReturn
+			for _, channel := range entity.ChannelList {
+				msg, _ := json.Marshal(sitaContext)
+				channel.Write(string(msg))
+				break
+			}
+		}
+	}()
+}
+
+func makeMassage() {
 	go func() {
 		for true {
 			time.Sleep(500 * time.Millisecond)
@@ -372,7 +447,6 @@ func WaitSignal() {
 			}
 		}
 	}()
-	<-global.SetupMainSignalHandler()
 }
 
 // PasswordHashEncrypt 使用key加密给定passwordHash

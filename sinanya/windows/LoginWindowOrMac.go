@@ -21,12 +21,13 @@ import (
 )
 
 func LoginWindowsOrMac() {
+	version := "0.1.1"
 	//新建一个app
 	a := entity.WINDOW
 	//设置窗口栏，任务栏图标
 	a.Settings().SetTheme(&theme.MyTheme{})
 	//新建一个窗口
-	loginWindow := a.NewWindow("SinaNyaX 登录界面")
+	loginWindow := a.NewWindow(fmt.Sprintf("SinaNyaX 登录界面 %s", version))
 	loginWindow.SetCloseIntercept(func() {
 		a.Quit()
 	})
@@ -81,9 +82,11 @@ func RunningWindow(app fyne.App) {
 	serverButtonList := container.NewGridWithColumns(3)
 	var statusList []serverStatusList
 	for ip, name := range loginConfig.ServerIp {
-		button := widget.NewButton("重连", func() {
-			service.CreateClient(int(loginConfig.UserName), ip, 60083)
-		})
+		button := widget.NewButton("重连", func(ip string) func() {
+			return func() {
+				service.CreateClient(int(loginConfig.UserName), ip, 60083)
+			}
+		}(ip))
 		status := canvas.NewText("离线", colornames.Green)
 		statusList = append(statusList, serverStatusList{ip: ip, label: status, button: button})
 		serverButtonList.Add(widget.NewLabel(name))
@@ -96,11 +99,16 @@ func RunningWindow(app fyne.App) {
 	cntContent := container.NewVBox(cnt2, cnt1)
 
 	runningWindow.SetContent(cntContent)
+	go func() {
+		for true {
+			time.Sleep(500 * time.Millisecond)
+			strMessage := <-entity.LOG_CHANNEL
+			logSave.add(strMessage)
+			txtResults.SetText(strings.Join(logSave.logList, "\n"))
+		}
+	}()
 	for true {
-		time.Sleep(500 * time.Millisecond)
-		strMessage := <-entity.LOG_CHANNEL
-		logSave.add(strMessage)
-		txtResults.SetText(strings.Join(logSave.logList, "\n"))
+		time.Sleep(5 * time.Second)
 		for _, status := range statusList {
 			enabled := getServerStatus(status.ip)
 			if enabled {

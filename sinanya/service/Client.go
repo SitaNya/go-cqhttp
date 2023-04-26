@@ -28,14 +28,29 @@ func (l Client) HandleActive(ctx netty.ActiveContext) {
 	entity.ChannelList[l.Host] = ctx.Channel()
 }
 
+func checkContain(str string, list []string) bool {
+	for _, value := range list {
+		if strings.Contains(str, value) {
+			return true
+		}
+	}
+	return false
+}
+
 func (l Client) HandleRead(ctx netty.InboundContext, message netty.Message) {
 	sitaContext, err := entity.ParseSitaContext(message.(string))
 	if err != nil {
 		panic(err)
 	}
-	entity.ChannelMessage <- sitaContext
-	for _, messageEvery := range sitaContext.MessagesList.Messages {
-		log.Infof("[%d]发来信息->\t%s", sitaContext.UserId, messageEvery)
+	// check entity.SERVER_REQUEST contains sitaContext.ActionTypes.Context
+	if checkContain(sitaContext.ActionTypes.Context, entity.SERVER_REQUEST) {
+		entity.ChannelAction <- sitaContext
+		log.Infof("[%d]发来请求->\t%s", sitaContext.BotId, sitaContext.ActionTypes.Context)
+	} else {
+		entity.ChannelMessage <- sitaContext
+		for _, messageEvery := range sitaContext.MessagesList.Messages {
+			log.Infof("[%d]发来信息->\t%s", sitaContext.UserId, messageEvery)
+		}
 	}
 	ctx.HandleRead(message)
 }

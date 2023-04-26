@@ -10,8 +10,13 @@ type SitaContext struct {
 	GroupId      int          `json:"groupId"`
 	Type         string       `json:"type"`
 	MessagesList MessagesList `json:"messagesList"`
-	ActionTypes  []string     `json:"actionTypes"`
+	ActionTypes  ActionTypes  `json:"actionTypes"`
 	Platform     string       `json:"platform"`
+}
+
+type ActionTypes struct {
+	Id      int64  `json:"id"`
+	Context string `json:"context"`
 }
 
 type MessagesList struct {
@@ -52,6 +57,9 @@ func (t MessageImage) GetType() string {
 
 func parseMessagesList(messagesList map[string]interface{}) MessagesList {
 	messages := messagesList["messages"].([]interface{})
+	if messages == nil {
+		messages = make([]interface{}, 0)
+	}
 	messageTypes := messagesList["messageTypes"].(string)
 
 	var resultMessages []IMessage

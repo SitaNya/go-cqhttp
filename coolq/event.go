@@ -114,7 +114,7 @@ func (bot *CQBot) privateMessageEvent(c *client.QQClient, m *message.PrivateMess
 	id := bot.InsertPrivateMessage(m)
 	messages := tools.MakeMessageList(cqm)
 	messageList := entity.MessagesList{Messages: messages, MessageTypes: "GET_FROM_USER_REQUEST"}
-	sitaContext := entity.SitaContext{BotId: int(c.Uin), UserId: int(m.Sender.Uin), GroupId: 0, Type: "SitaContext", ActionTypes: []string{}, Platform: "QQ", MessagesList: messageList}
+	sitaContext := entity.SitaContext{BotId: int(c.Uin), UserId: int(m.Sender.Uin), GroupId: 0, Type: "SitaContext", ActionTypes: entity.ActionTypes{}, Platform: "QQ", MessagesList: messageList}
 	log.Infof("收到好友 %v(%v) 的消息: %v (%v)", m.Sender.DisplayName(), m.Sender.Uin, cqm, id)
 	for _, channel := range entity.ChannelList {
 		msg, _ := json.Marshal(sitaContext)
@@ -169,7 +169,7 @@ func (bot *CQBot) groupMessageEvent(c *client.QQClient, m *message.GroupMessage)
 	id := bot.InsertGroupMessage(m)
 	messages := tools.MakeMessageList(cqm)
 	messageList := entity.MessagesList{Messages: messages, MessageTypes: "GET_FROM_USER_REQUEST"}
-	sitaContext := entity.SitaContext{BotId: int(c.Uin), UserId: int(m.Sender.Uin), GroupId: int(m.GroupCode), Type: "SitaContext", ActionTypes: []string{}, Platform: "QQ", MessagesList: messageList}
+	sitaContext := entity.SitaContext{BotId: int(c.Uin), UserId: int(m.Sender.Uin), GroupId: int(m.GroupCode), Type: "SitaContext", ActionTypes: entity.ActionTypes{}, Platform: "QQ", MessagesList: messageList}
 	log.Infof("收到好友 %v(%v) 的消息: %v (%v)", m.Sender.DisplayName(), m.Sender.Uin, cqm, id)
 	for _, channel := range entity.ChannelList {
 		msg, _ := json.Marshal(sitaContext)

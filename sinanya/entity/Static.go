@@ -13,6 +13,10 @@ var ChannelList = make(map[string]netty.Channel)
 
 var ChannelMessage = make(chan SitaContext)
 
+var ChannelAction = make(chan SitaContext)
+
+var SERVER_REQUEST = []string{"GROUP_LEAVE_REQUEST", "GROUP_GET_NAME_REQUEST", "GROUP_GET_LIST_REQUEST", "GROUP_GET_LAST_SENDER_TIME_REQUEST", "GROUP_CHANGE_USER_NAME_REQUEST", "USER_GET_NAME_REQUEST"}
+
 var LOGIN_CONFIG_FILE = "./LoginConfig.json"
 
 type LoginConfig struct {
